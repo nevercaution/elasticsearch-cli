@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import argparse
 import readline
 import json
+import pprint
 
 import requests
 
@@ -10,15 +11,18 @@ from completer import CustomCompleter
 
 es_host = '127.0.0.1'
 es_port = '9200'
+es_info = {}
 request_host = ''
+pp = pprint.PrettyPrinter(indent=4)
 
-support_commands = ['get', 'set', 'del', 'keys']
+support_commands = ['get', 'set', 'del', 'keys', 'info']
 
 
 def check_connection():
     headers = {'Content-Type': 'application/json; charset=utf-8'}
     try:
         response = requests.get(request_host, headers=headers)
+        es_info.update(json.loads(response.text))
         print(response.text)
     except Exception as e:
         print(e)
@@ -29,15 +33,8 @@ def help_input():
     print('Commands: {}'.format(', '.join(support_commands)))
 
 
-def command_get(command: str):
-    command_list = split_command(command)
-
-    if not command_list:
-        return
-
-    headers = {'Content-Type': 'application/json; charset=utf-8'}
-    es_uri = es_host + ':' + es_port
-
+def command_get(command_list: list):
+    pass
 
 
 def command_del(command: str):
@@ -49,10 +46,11 @@ def command_set(command: str):
 
 
 def command_keys(command: str):
-    command_list = split_command(command)
+    pass
 
-    if not command_list:
-        return
+
+def command_info():
+    pp.pprint(es_info)
 
 
 def command_cat(command_list: list):
@@ -63,28 +61,22 @@ def command_cat(command_list: list):
         command_list.pop(0)
         uri += '/'.join(command_list)
 
+    cat_request_uri = request_host + "/_cat" + uri
+    response = request_get(cat_request_uri)
+
+    if response.status_code != 200:
+        error_res = json.loads(response.text)
+        print('(error) ' + error_res.get('error').get('reason'))
+        return
+
+    print(response.text)
+
+
+def request_get(uri: str):
     try:
-        cat_request_uri = request_host + "/_cat" + uri
-        response = requests.get(cat_request_uri)
-
-        if response.status_code != 200:
-            error_res = json.loads(response.text)
-            print('(error) ' + error_res.get('error').get('reason'))
-            return
-
-        print(response.text)
+        return requests.get(uri)
     except Exception as e:
         print(e)
-
-
-def split_command(command: str):
-    command_list = command.split(' ')
-
-    if len(command_list) == 1:
-        print("(error) ERR wrong number of arguments for 'get' command")
-        return None
-
-    return command_list
 
 
 if __name__ == '__main__':
@@ -118,7 +110,7 @@ if __name__ == '__main__':
         elif command_master == 'help':
             help_input()
         elif command_master == 'get':
-            command_get(user_input)
+            command_get(command_split_list)
         elif command_master == 'del':
             command_del(user_input)
         elif command_master == 'set':
@@ -127,6 +119,8 @@ if __name__ == '__main__':
             command_keys(user_input)
         elif command_master == 'cat':
             command_cat(command_split_list)
+        elif command_master == 'info':
+            command_info()
         elif command_master.replace(' ', '') == '':
             continue
         else:
