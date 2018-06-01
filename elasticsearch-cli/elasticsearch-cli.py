@@ -1,3 +1,6 @@
+# -*-coding:utf-8-*-
+
+
 from __future__ import absolute_import
 
 import argparse
@@ -14,7 +17,11 @@ es_port = '9200'
 es_info = {}
 request_host = ''
 
-support_commands = ['get', 'set', 'del', 'keys', 'info']
+support_commands = ['get', 'set', 'del', 'info', 'cat', 'index']
+
+
+def help_input():
+    print('Commands: {}'.format(', '.join(support_commands)))
 
 
 def check_connection():
@@ -30,10 +37,6 @@ def check_connection():
     es_info.update(json.loads(response.text))
 
 
-def help_input():
-    print('Commands: {}'.format(', '.join(support_commands)))
-
-
 def command_get(command_list: list):
 
     uri = '/'
@@ -46,19 +49,43 @@ def command_get(command_list: list):
     if response.status_code != 200:
         color = 'red'
 
-    cprint(json.dumps(json.loads(response.text), indent=4), color=color)
+    cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color=color)
 
 
-def command_del(command: str):
-    pass
+def command_del(command_list: list):
+
+    if len(command_list) != 2:
+        cprint('(error) invalid uri. Use del /{index}/{type:Optional}/{id:Optional}', color='red')
+        return
+
+    uri = command_list[1]
+    if uri[:1] != '/':
+        uri = '/' + uri
+
+    response = request_delete(uri)
+    print('response : ', response)
+
+    color = 'white'
+    if response.status_code != 200:
+        color = 'red'
+    cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color=color)
 
 
 def command_set(command: str):
     pass
 
 
-def command_keys(command: str):
-    pass
+def command_index(command_list: list):
+
+    print('command_list : ', command_list)
+    print('len : ', len(command_list))
+
+    if len(command_list) != 3:
+        cprint("(error) invalid type. use get '{index_name}/{type}/{uid}' {'name': 'teddy', 'nationality': 'korea'} ",
+               color='red')
+        return
+
+    uri = '/'
 
 
 def command_info():
@@ -109,6 +136,19 @@ def request_get(uri: str):
         return res
 
 
+def request_delete(uri: str):
+    request_uri = request_host + uri
+    print('uri : ', request_uri)
+
+    try:
+        return requests.delete(request_uri)
+    except Exception as e:
+        res = CustomResponse()
+        res.status_code = 500
+        res.custom_message = e
+        return res
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-host', help='elasticsearch host (default is http://localhost)')
@@ -129,7 +169,7 @@ if __name__ == '__main__':
     check_connection()
     input_text = es_uri + '> '
     while True:
-        user_input = input(input_text)
+        user_input = input(input_text).lstrip()
         readline.add_history(user_input)
 
         command_split_list = user_input.split(' ')
@@ -142,11 +182,11 @@ if __name__ == '__main__':
         elif command_master == 'get':
             command_get(command_split_list)
         elif command_master == 'del':
-            command_del(user_input)
+            command_del(command_split_list)
         elif command_master == 'set':
             command_set(user_input)
-        elif command_master == 'keys':
-            command_keys(user_input)
+        elif command_master == 'index':
+            command_index(command_split_list)
         elif command_master == 'cat':
             command_cat(command_split_list)
         elif command_master == 'info':
