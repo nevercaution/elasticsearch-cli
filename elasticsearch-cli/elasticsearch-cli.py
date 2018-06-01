@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import argparse
 import readline
 import json
-import pprint
+from termcolor import cprint
 
 import requests
 
@@ -13,20 +13,21 @@ es_host = '127.0.0.1'
 es_port = '9200'
 es_info = {}
 request_host = ''
-pp = pprint.PrettyPrinter(indent=4)
 
 support_commands = ['get', 'set', 'del', 'keys', 'info']
 
 
 def check_connection():
-    headers = {'Content-Type': 'application/json; charset=utf-8'}
-    try:
-        response = requests.get(request_host, headers=headers)
-        es_info.update(json.loads(response.text))
-        print(response.text)
-    except Exception as e:
-        print(e)
+    global es_info
+
+    uri = '/'
+    response = request_get(uri)
+    if response.status_code != 200:
+        cprint('(error) invalid host', color='red')
         exit(-1)
+    print(response.text)
+
+    es_info.update(json.loads(response.text))
 
 
 def help_input():
@@ -34,7 +35,18 @@ def help_input():
 
 
 def command_get(command_list: list):
-    pass
+
+    uri = '/'
+    if len(command_list) > 0:
+        command_list.pop(0)
+        uri += '/'.join(command_list)
+
+    response = request_get(uri)
+    color = 'white'
+    if response.status_code != 200:
+        color = 'red'
+
+    cprint(json.dumps(json.loads(response.text), indent=4), color=color)
 
 
 def command_del(command: str):
@@ -50,7 +62,7 @@ def command_keys(command: str):
 
 
 def command_info():
-    pp.pprint(es_info)
+    print(json.dumps(es_info, indent=4))
 
 
 def command_cat(command_list: list):
@@ -61,7 +73,7 @@ def command_cat(command_list: list):
         command_list.pop(0)
         uri += '/'.join(command_list)
 
-    cat_request_uri = request_host + "/_cat" + uri
+    cat_request_uri = '/_cat' + uri
     response = request_get(cat_request_uri)
 
     if response.status_code != 200:
@@ -72,11 +84,29 @@ def command_cat(command_list: list):
     print(response.text)
 
 
+class CustomResponse(requests.Response):
+
+    def __init__(self):
+        super().__init__()
+        self.custom_message = ''
+
+    @property
+    def text(self):
+        return self.custom_message
+
+
 def request_get(uri: str):
+    request_uri = request_host + uri
+    print('uri : ', request_uri)
+
+    headers = {'Content-Type': 'application/json; charset=utf-8'}
     try:
-        return requests.get(uri)
+        return requests.get(request_uri, headers=headers)
     except Exception as e:
-        print(e)
+        res = CustomResponse()
+        res.status_code = 500
+        res.custom_message = e
+        return res
 
 
 if __name__ == '__main__':
@@ -89,8 +119,8 @@ if __name__ == '__main__':
     es_host = args.host if args.host else es_host
     es_port = args.port if args.port else es_port
 
-    es_uri = es_host + ':' + es_port
-    request_host = 'http://' + es_uri if 'http://' not in es_uri else es_uri
+    es_uri = (es_host + ':' + es_port).replace('http://', '')
+    request_host = 'http://' + es_uri
 
     completer = CustomCompleter(support_commands)
     readline.set_completer(completer.complete)
