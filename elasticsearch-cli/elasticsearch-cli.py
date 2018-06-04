@@ -17,7 +17,7 @@ es_port = '9200'
 es_info = {}
 request_host = ''
 
-support_commands = ['get', 'set', 'del', 'info', 'cat', 'index']
+support_commands = ['get', 'del', 'info', 'cat', 'index', 'match_all']
 
 
 def help_input():
@@ -55,7 +55,7 @@ def command_get(command_list: list):
 def command_del(command_list: list):
 
     if len(command_list) != 2:
-        cprint('(error) invalid uri. Use del /{index}/{type:Optional}/{id:Optional}', color='red')
+        cprint('(error) invalid uri. Use > del /{index}/{type:Optional}/{id:Optional}', color='red')
         return
 
     uri = command_list[1]
@@ -71,21 +71,38 @@ def command_del(command_list: list):
     cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color=color)
 
 
-def command_set(command: str):
-    pass
+def match_all(command_list: list):
 
-
-def command_index(command_list: list):
-
-    print('command_list : ', command_list)
-    print('len : ', len(command_list))
-
-    if len(command_list) != 3:
-        cprint("(error) invalid type. use get '{index_name}/{type}/{uid}' {'name': 'teddy', 'nationality': 'korea'} ",
-               color='red')
+    if len(command_list) < 2:
+        cprint('(error) invalid request Use > match_all {index} {from:optional} {size:optional}', color='red')
         return
 
-    uri = '/'
+    index = command_list[1]
+
+    _from, _size = 0, 50
+    if len(command_list) > 2:
+        _from = command_list[2]
+    if len(command_list) > 3:
+        _size = command_list[3]
+
+    params = {
+        'match_all': {},
+        'from': _from,
+        'size': _size
+    }
+
+    headers = {'Content-Type': 'application/json; charset=utf-8'}
+    uri = request_host + '/' + index + '/_search'
+    response = requests.get(uri, params=params, headers=headers)
+
+    color = 'white'
+    if response.status_code != 200:
+        color = 'red'
+    cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color=color)
+
+
+def command_search(command_list: list):
+    pass
 
 
 def command_info():
@@ -104,11 +121,10 @@ def command_cat(command_list: list):
     response = request_get(cat_request_uri)
 
     if response.status_code != 200:
-        error_res = json.loads(response.text)
-        print('(error) ' + error_res.get('error').get('reason'))
-        return
+        cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color='red')
 
     print(response.text)
+
 
 
 class CustomResponse(requests.Response):
@@ -183,14 +199,14 @@ if __name__ == '__main__':
             command_get(command_split_list)
         elif command_master == 'del':
             command_del(command_split_list)
-        elif command_master == 'set':
-            command_set(user_input)
-        elif command_master == 'index':
-            command_index(command_split_list)
+        elif command_master == 'search':
+            command_search(command_split_list)
         elif command_master == 'cat':
             command_cat(command_split_list)
         elif command_master == 'info':
             command_info()
+        elif command_master == 'match_all':
+            match_all(command_split_list)
         elif command_master.replace(' ', '') == '':
             continue
         else:
