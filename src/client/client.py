@@ -21,7 +21,7 @@ es_port = '9200'
 es_info = {}
 request_host = ''
 
-support_commands = ['get', 'del', 'info', 'cat', 'index', 'match_all']
+support_commands = ['get', 'del', 'info', 'cat', 'index', 'match_all', 'match']
 
 
 def help_input():
@@ -90,14 +90,16 @@ def match_all(command_list: list):
         _size = command_list[3]
 
     params = {
-        'match_all': {},
+        'query': {
+            'match_all': {}
+        },
         'from': _from,
         'size': _size
     }
 
     headers = {'Content-Type': 'application/json; charset=utf-8'}
     uri = request_host + '/' + index + '/_search'
-    response = requests.get(uri, params=params, headers=headers)
+    response = requests.get(uri, data=json.dumps(params), headers=headers)
 
     color = 'white'
     if response.status_code != 200:
@@ -105,8 +107,37 @@ def match_all(command_list: list):
     cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color=color)
 
 
-def command_search(command_list: list):
-    pass
+def match(command_list: list):
+
+    if len(command_list) < 4:
+        cprint('(error) invalid request Use > match {index} {document} {value}', color='red')
+        return
+
+    command_list.pop(0)  # match keyword
+    index = command_list.pop(0)  # index
+
+    document = command_list.pop(0)
+    value = command_list.pop(0)
+
+    params = {
+        'query': {
+            'match': {
+                document: {
+                    'query': value
+                }
+            }
+        }
+    }
+
+    headers = {'Content-Type': 'application/json; charset=utf-8'}
+    uri = request_host + '/' + index + '/_search'
+
+    response = requests.get(uri, data=json.dumps(params), headers=headers)
+
+    color = 'white'
+    if response.status_code != 200:
+        color = 'red'
+    cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color=color)
 
 
 def command_info():
@@ -205,14 +236,14 @@ def main():
                 command_get(command_split_list)
             elif command_master == 'del':
                 command_del(command_split_list)
-            elif command_master == 'search':
-                command_search(command_split_list)
             elif command_master == 'cat':
                 command_cat(command_split_list)
             elif command_master == 'info':
                 command_info()
             elif command_master == 'match_all':
                 match_all(command_split_list)
+            elif command_master == 'match':
+                match(command_split_list)
             elif command_master.replace(' ', '') == '':
                 continue
             else:
