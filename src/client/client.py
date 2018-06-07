@@ -24,11 +24,6 @@ request_host = ''
 support_commands = ['get', 'del', 'info', 'cat', 'index', 'match_all']
 
 
-def signal_handler(signal, frame):
-    print('thank you!')
-    sys.exit(0)
-
-
 def help_input():
     print('Commands: {}'.format(', '.join(support_commands)))
 
@@ -133,7 +128,6 @@ def command_cat(command_list: list):
         cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color='red')
 
     print(response.text)
-
 
 
 class CustomResponse(requests.Response):
