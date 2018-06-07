@@ -1,4 +1,4 @@
-# elasticsearch_cli
+# elasticsearch-cli
 elasticsearch cli tools.  
 
 ## Usage
@@ -192,4 +192,21 @@ See here [get API method](https://www.elastic.co/guide/en/elasticsearch/referenc
     "found": true,
     "_version": 1
 }
+```
+
+
+## How to run
+
+You can run scripts right away.
+
+```
+$ python src/__main__.py
+```
+
+## how to build
+If you have modified the source code yourself, here's how to create a build file.  
+Requires python 3.x or higher and pyinstaller installed.  
+
+```
+$ .build.command
 ```
