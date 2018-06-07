@@ -21,7 +21,7 @@ es_port = '9200'
 es_info = {}
 request_host = ''
 
-support_commands = ['get', 'del', 'info', 'cat', 'index', 'match_all', 'match']
+support_commands = ['get', 'del', 'info', 'cat', 'match_all', 'match']
 
 
 def help_input():
