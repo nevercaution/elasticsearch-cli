@@ -58,16 +58,46 @@ def command_get(command_list: list):
 
 def command_del(command_list: list):
 
-    if len(command_list) != 2:
-        cprint('(error) invalid uri. Use > del /{index}/{type:Optional}/{id:Optional}', color='red')
+    if len(command_list) < 2:
+        cprint('(error) invalid request. Use > del {index} {type:Optional} {id:Optional}', color='red')
         return
 
-    uri = command_list[1]
-    if uri[:1] != '/':
-        uri = '/' + uri
+    command_list.pop(0)
+    index = command_list.pop(0)
+
+    uri = '/' + index + '/' + '/'.join(command_list)
 
     response = request_delete(uri)
-    print('response : ', response)
+
+    color = 'white'
+    if response.status_code != 200:
+        color = 'red'
+    cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color=color)
+
+
+def delete_by_query(command_list: list):
+
+    if len(command_list) < 4:
+        cprint('(error) invalid request. Use > delete_by_query {index} {document} {value}', color='red')
+        return
+
+    command = command_list.pop(0)  # delete_by_query command
+    index = command_list.pop(0)
+
+    document = command_list.pop(0)
+    value = command_list.pop(0)
+
+    data = {
+        'query': {
+            'match': {
+                document: value
+            }
+        }
+    }
+
+    headers = {'Content-Type': 'application/json; charset=utf-8'}
+    uri = request_host + '/' + index + '/_' + command
+    response = requests.post(uri, data=json.dumps(data), headers=headers)
 
     color = 'white'
     if response.status_code != 200:
@@ -89,7 +119,7 @@ def match_all(command_list: list):
     if len(command_list) > 3:
         _size = command_list[3]
 
-    params = {
+    data = {
         'query': {
             'match_all': {}
         },
@@ -97,9 +127,8 @@ def match_all(command_list: list):
         'size': _size
     }
 
-    headers = {'Content-Type': 'application/json; charset=utf-8'}
-    uri = request_host + '/' + index + '/_search'
-    response = requests.get(uri, data=json.dumps(params), headers=headers)
+    uri = '/' + index + '/_search'
+    response = request_get(uri, data=data)
 
     color = 'white'
     if response.status_code != 200:
@@ -119,7 +148,7 @@ def match(command_list: list):
     document = command_list.pop(0)
     value = command_list.pop(0)
 
-    params = {
+    data = {
         'query': {
             'match': {
                 document: {
@@ -129,10 +158,8 @@ def match(command_list: list):
         }
     }
 
-    headers = {'Content-Type': 'application/json; charset=utf-8'}
-    uri = request_host + '/' + index + '/_search'
-
-    response = requests.get(uri, data=json.dumps(params), headers=headers)
+    uri = '/' + index + '/_search'
+    response = request_get(uri, data=data)
 
     color = 'white'
     if response.status_code != 200:
@@ -172,13 +199,14 @@ class CustomResponse(requests.Response):
         return self.custom_message
 
 
-def request_get(uri: str):
+def request_get(uri: str, **kwargs):
     request_uri = request_host + uri
-    print('uri : ', request_uri)
+    data = kwargs.get('data', {})
+    print('uri : ', request_uri, ', data : ', data)
 
     headers = {'Content-Type': 'application/json; charset=utf-8'}
     try:
-        return requests.get(request_uri, headers=headers)
+        return requests.get(request_uri, data=json.dumps(data), headers=headers)
     except Exception as e:
         res = CustomResponse()
         res.status_code = 500
@@ -236,6 +264,8 @@ def main():
                 command_get(command_split_list)
             elif command_master == 'del':
                 command_del(command_split_list)
+            elif command_master == 'delete_by_query':
+                delete_by_query(command_split_list)
             elif command_master == 'cat':
                 command_cat(command_split_list)
             elif command_master == 'info':
@@ -252,6 +282,7 @@ def main():
         except KeyboardInterrupt:
             print('thank you!')
             sys.exit(0)
+
 
 
 
