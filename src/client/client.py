@@ -152,7 +152,7 @@ def command_match(command_list: list):
 
 def command_cat(command_list: list):
 
-    uri = '/_cat'
+    uri = '/_cat/'
     command_list.pop(0)  # cat command
 
     uri += '/'.join(command_list)
@@ -163,11 +163,12 @@ def command_cat(command_list: list):
 
 def command_analyze(command_list: list):
 
-    if len(command_list) < 3:
-        cprint('(error) invalid request Use > analyze {analyzer} {text}', color='red')
+    if len(command_list) < 4:
+        cprint('(error) invalid request Use > analyze {index} {analyzer} {text}', color='red')
         return
 
     command_list.pop(0)  # analyze command
+    index = command_list.pop(0)
     analyzer = command_list.pop(0)
     text = command_list.pop(0)
 
@@ -176,7 +177,9 @@ def command_analyze(command_list: list):
         'text': text
     }
 
-    uri = '/_analyze'
+    uri = '/' + index + '/_analyze/'
+
+    print('uri : ', uri)
     response = _request_post(uri, data=data)
     _response_print(response)
 
@@ -285,7 +288,7 @@ def main():
     input_text = es_uri + '> '
     while True:
         try:
-            user_input = input(input_text).lstrip()
+            user_input = input(input_text).lstrip().rstrip()
             readline.add_history(user_input)
 
             command_split_list = user_input.split(' ')
