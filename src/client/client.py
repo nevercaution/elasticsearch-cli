@@ -5,7 +5,6 @@ import argparse
 import readline
 import json
 import sys
-import re
 
 from termcolor import cprint
 
@@ -22,7 +21,7 @@ es_port = '9200'
 es_info = {}
 request_host = ''
 
-support_commands = ['get', 'del', 'delete_by_query', 'info', 'cat', 'match_all', 'match']
+support_commands = ['get', 'del', 'delete_by_query', 'info', 'cat', 'match_all', 'match', 'analyze']
 
 
 def help_input():
@@ -33,7 +32,7 @@ def check_connection():
     global es_info
 
     uri = '/'
-    response = request_get(uri)
+    response = _request_get(uri)
     if response.status_code != 200:
         cprint('(error) invalid host', color='red')
         sys.exit(-1)
@@ -53,8 +52,8 @@ def command_get(command_list: list):
         command_list.pop(0)
         uri += '/'.join(command_list)
 
-    response = request_get(uri)
-    response_print(response)
+    response = _request_get(uri)
+    _response_print(response)
 
 
 def command_del(command_list: list):
@@ -68,8 +67,8 @@ def command_del(command_list: list):
 
     uri = '/' + index + '/' + '/'.join(command_list)
 
-    response = request_delete(uri)
-    response_print(response)
+    response = _request_delete(uri)
+    _response_print(response)
 
 
 def delete_by_query(command_list: list):
@@ -92,10 +91,9 @@ def delete_by_query(command_list: list):
         }
     }
 
-    headers = {'Content-Type': 'application/json; charset=utf-8'}
-    uri = request_host + '/' + index + '/_' + command
-    response = requests.post(uri, data=json.dumps(data), headers=headers)
-    response_print(response)
+    uri = '/' + index + '/_' + command
+    response = _request_post(uri, data=data)
+    _response_print(response)
 
 
 def match_all(command_list: list):
@@ -121,8 +119,8 @@ def match_all(command_list: list):
     }
 
     uri = '/' + index + '/_search'
-    response = request_get(uri, data=data)
-    response_print(response)
+    response = _request_get(uri, data=data)
+    _response_print(response)
 
 
 def match(command_list: list):
@@ -148,24 +146,42 @@ def match(command_list: list):
     }
 
     uri = '/' + index + '/_search'
-    response = request_get(uri, data=data)
-    response_print(response)
+    response = _request_get(uri, data=data)
+    _response_print(response)
 
 
 def command_cat(command_list: list):
 
-    uri = '/'
-    if len(command_list) > 0:
-        # _cat 으로 통일하기 위해 cat 문구는 모두 삭제 하고 / 로 이어주자
-        command_list.pop(0)
-        uri += '/'.join(command_list)
+    uri = '/_cat'
+    command_list.pop(0)  # cat command
 
-    cat_request_uri = '/_cat' + uri
-    response = request_get(cat_request_uri)
-    response_print(response)
+    uri += '/'.join(command_list)
+
+    response = _request_get(uri)
+    _response_print(response)
 
 
-def response_print(response: requests.Response):
+def analyze(command_list: list):
+
+    if len(command_list) < 3:
+        cprint('(error) invalid request Use > analyze {analyzer} {text}', color='red')
+        return
+
+    command_list.pop(0)  # analyze command
+    analyzer = command_list.pop(0)
+    text = command_list.pop(0)
+
+    data = {
+        'analyzer': analyzer,
+        'text': text
+    }
+
+    uri = '/_analyze'
+    response = _request_post(uri, data=data)
+    _response_print(response)
+
+
+def _response_print(response: requests.Response):
 
     color = 'white'
     if response.status_code != 200:
@@ -190,7 +206,7 @@ class CustomResponse(requests.Response):
         return self.custom_message
 
 
-def request_get(uri: str, **kwargs):
+def _request_get(uri: str, **kwargs):
     request_uri = request_host + uri
     data = kwargs.get('data', {})
     print('uri : ', request_uri, ', data : ', data)
@@ -205,11 +221,26 @@ def request_get(uri: str, **kwargs):
         return res
 
 
-def request_delete(uri: str):
+def _request_delete(uri: str):
     request_uri = request_host + uri
 
     try:
         return requests.delete(request_uri)
+    except Exception as e:
+        res = CustomResponse()
+        res.status_code = 500
+        res.custom_message = e
+        return res
+
+
+def _request_post(uri: str, **kwargs):
+    request_uri = request_host + uri
+    data = kwargs.get('data', {})
+
+    headers = {'Content-Type': 'application/json; charset=utf-8'}
+
+    try:
+        return requests.post(request_uri, data=json.dumps(data), headers=headers)
     except Exception as e:
         res = CustomResponse()
         res.status_code = 500
@@ -264,6 +295,8 @@ def main():
                 match_all(command_split_list)
             elif command_master == 'match':
                 match(command_split_list)
+            elif command_master == 'analyze':
+                analyze(command_split_list)
             elif command_master.replace(' ', '') == '':
                 continue
             else:
