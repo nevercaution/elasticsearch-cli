@@ -21,7 +21,7 @@ es_port = '9200'
 es_info = {}
 request_host = ''
 
-support_commands = ['get', 'del', 'delete_by_query', 'info', 'cat', 'match_all', 'match', 'analyze']
+support_commands = ['get', 'del', 'delete_by_query', 'info', 'cat', 'match_all', 'match', 'analyze', 'settings']
 
 
 def help_input():
@@ -71,7 +71,7 @@ def command_del(command_list: list):
     _response_print(response)
 
 
-def delete_by_query(command_list: list):
+def command_delete_by_query(command_list: list):
 
     if len(command_list) < 4:
         cprint('(error) invalid request. Use > delete_by_query {index} {document} {value}', color='red')
@@ -96,7 +96,7 @@ def delete_by_query(command_list: list):
     _response_print(response)
 
 
-def match_all(command_list: list):
+def command_match_all(command_list: list):
 
     if len(command_list) < 2:
         cprint('(error) invalid request Use > match_all {index} {from:optional} {size:optional}', color='red')
@@ -123,7 +123,7 @@ def match_all(command_list: list):
     _response_print(response)
 
 
-def match(command_list: list):
+def command_match(command_list: list):
 
     if len(command_list) < 4:
         cprint('(error) invalid request Use > match {index} {document} {value}', color='red')
@@ -161,7 +161,7 @@ def command_cat(command_list: list):
     _response_print(response)
 
 
-def analyze(command_list: list):
+def command_analyze(command_list: list):
 
     if len(command_list) < 3:
         cprint('(error) invalid request Use > analyze {analyzer} {text}', color='red')
@@ -178,6 +178,20 @@ def analyze(command_list: list):
 
     uri = '/_analyze'
     response = _request_post(uri, data=data)
+    _response_print(response)
+
+
+def command_settings(command_list: list):
+
+    uri = '/'
+    command_list.pop(0)  # settings command
+
+    if len(command_list) > 0:
+        uri += ','.join(command_list)
+
+    uri += '/_settings'
+
+    response = _request_get(uri)
     _response_print(response)
 
 
@@ -286,17 +300,19 @@ def main():
             elif command_master == 'del':
                 command_del(command_split_list)
             elif command_master == 'delete_by_query':
-                delete_by_query(command_split_list)
+                command_delete_by_query(command_split_list)
             elif command_master == 'cat':
                 command_cat(command_split_list)
             elif command_master == 'info':
                 command_info()
             elif command_master == 'match_all':
-                match_all(command_split_list)
+                command_match_all(command_split_list)
             elif command_master == 'match':
-                match(command_split_list)
+                command_match(command_split_list)
             elif command_master == 'analyze':
-                analyze(command_split_list)
+                command_analyze(command_split_list)
+            elif command_master == 'settings':
+                command_settings(command_split_list)
             elif command_master.replace(' ', '') == '':
                 continue
             else:

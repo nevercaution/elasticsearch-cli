@@ -219,6 +219,48 @@ See here [get API method](https://www.elastic.co/guide/en/elasticsearch/referenc
 }
 ```
 
+* settings  
+method that can check the status of an index.  
+See here [settings API method](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-settings.html)  
+
+```
+> settings t*
+uri :  http://127.0.0.1:9200/t*/_settings , data :  {}
+{
+    "twitter": {
+        "settings": {
+            "index": {
+                "blocks": {
+                    "read_only_allow_delete": "true"
+                },
+                "provided_name": "twitter",
+                "number_of_replicas": "1",
+                "number_of_shards": "5",
+                "uuid": "rU-xeh60RgCPmlnAHZuyoA",
+                "creation_date": "1528358416566",
+                "version": {
+                    "created": "6020299"
+                }
+            }
+        }
+    },
+    "test": {
+        "settings": {
+            "index": {
+                "version": {
+                    "created": "6020299"
+                },
+                "uuid": "Oy9-5IEbSwq-4zhymfcu0g",
+                "number_of_replicas": "1",
+                "number_of_shards": "5",
+                "creation_date": "1528614238324",
+                "provided_name": "test"
+            }
+        }
+    }
+}
+```
+
 
 ## How to run
 
