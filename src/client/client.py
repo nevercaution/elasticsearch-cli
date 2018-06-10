@@ -5,6 +5,7 @@ import argparse
 import readline
 import json
 import sys
+import re
 
 from termcolor import cprint
 
@@ -21,7 +22,7 @@ es_port = '9200'
 es_info = {}
 request_host = ''
 
-support_commands = ['get', 'del', 'info', 'cat', 'match_all', 'match']
+support_commands = ['get', 'del', 'delete_by_query', 'info', 'cat', 'match_all', 'match']
 
 
 def help_input():
@@ -41,6 +42,10 @@ def check_connection():
     es_info.update(json.loads(response.text))
 
 
+def command_info():
+    print(json.dumps(es_info, indent=4))
+
+
 def command_get(command_list: list):
 
     uri = '/'
@@ -49,11 +54,7 @@ def command_get(command_list: list):
         uri += '/'.join(command_list)
 
     response = request_get(uri)
-    color = 'white'
-    if response.status_code != 200:
-        color = 'red'
-
-    cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color=color)
+    response_print(response)
 
 
 def command_del(command_list: list):
@@ -68,11 +69,7 @@ def command_del(command_list: list):
     uri = '/' + index + '/' + '/'.join(command_list)
 
     response = request_delete(uri)
-
-    color = 'white'
-    if response.status_code != 200:
-        color = 'red'
-    cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color=color)
+    response_print(response)
 
 
 def delete_by_query(command_list: list):
@@ -98,11 +95,7 @@ def delete_by_query(command_list: list):
     headers = {'Content-Type': 'application/json; charset=utf-8'}
     uri = request_host + '/' + index + '/_' + command
     response = requests.post(uri, data=json.dumps(data), headers=headers)
-
-    color = 'white'
-    if response.status_code != 200:
-        color = 'red'
-    cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color=color)
+    response_print(response)
 
 
 def match_all(command_list: list):
@@ -129,11 +122,7 @@ def match_all(command_list: list):
 
     uri = '/' + index + '/_search'
     response = request_get(uri, data=data)
-
-    color = 'white'
-    if response.status_code != 200:
-        color = 'red'
-    cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color=color)
+    response_print(response)
 
 
 def match(command_list: list):
@@ -160,15 +149,7 @@ def match(command_list: list):
 
     uri = '/' + index + '/_search'
     response = request_get(uri, data=data)
-
-    color = 'white'
-    if response.status_code != 200:
-        color = 'red'
-    cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color=color)
-
-
-def command_info():
-    print(json.dumps(es_info, indent=4))
+    response_print(response)
 
 
 def command_cat(command_list: list):
@@ -181,11 +162,21 @@ def command_cat(command_list: list):
 
     cat_request_uri = '/_cat' + uri
     response = request_get(cat_request_uri)
+    response_print(response)
 
+
+def response_print(response: requests.Response):
+
+    color = 'white'
     if response.status_code != 200:
-        cprint(json.dumps(json.loads(response.text), indent=4, ensure_ascii=False), color='red')
+        color = 'red'
 
-    print(response.text)
+    try:
+        text = json.dumps(json.loads(response.text), indent=4, ensure_ascii=False)
+    except json.JSONDecodeError:
+        text = response.text
+
+    cprint(text=text, color=color)
 
 
 class CustomResponse(requests.Response):
@@ -216,7 +207,6 @@ def request_get(uri: str, **kwargs):
 
 def request_delete(uri: str):
     request_uri = request_host + uri
-    print('uri : ', request_uri)
 
     try:
         return requests.delete(request_uri)

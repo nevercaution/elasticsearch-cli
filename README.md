@@ -8,10 +8,10 @@ Execution command. Usage is simple.
 ```
 $ ./bin/elasticsearch-cli  
 
-# if you wnat to specific host
+# if you want to specific host
 $ ./bin/elasticsearch-cli -host YOUR_HOST
 
-# if you wnat to specific port
+# if you want to specific port
 $ ./bin/elasticsearch-cli -port YOUR_PORT
 
 # both also possible
@@ -168,11 +168,36 @@ See here [match method](https://www.elastic.co/guide/en/elasticsearch/reference/
 }
 ```
 
-* `delete API`  
+* `del API`
 The delete API in elasticsearch.  
 Requires a document to be deleted as a parameter.  
 See here [delete API method](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-delete.html)    
 
+* `delete by query API`
+_delete_by_query API in elasticsearch.  
+Requires a document to be deleted as a parameter.  
+See here [delete API method](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-delete-by-query.html)    
+
+```
+> delete_by_query twitter user kimchy
+{
+    "took": 52,
+    "throttled_until_millis": 0,
+    "retries": {
+        "search": 0,
+        "bulk": 0
+    },
+    "timed_out": false,
+    "version_conflicts": 0,
+    "failures": [],
+    "throttled_millis": 0,
+    "batches": 0,
+    "noops": 0,
+    "total": 0,
+    "deleted": 0,
+    "requests_per_second": -1.0
+}
+```
 
 * `get API`    
 The get API in elasticsearch.  
